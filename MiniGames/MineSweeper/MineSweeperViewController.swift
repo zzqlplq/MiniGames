@@ -16,7 +16,7 @@ class MineSweeperViewController: UIViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
         makeSubviewsLayout()
-        sweeperHandler.createRadomMines(totalMines: 10)
+        sweeperHandler.createRadomMines(totalMines: 5)
         view.backgroundColor = .systemGroupedBackground
     }
 
@@ -128,7 +128,8 @@ class MineCollectionViewCell: UICollectionViewCell {
     
     lazy var detailLab: UILabel = {
         var lab = UILabel()
-        lab.font = UIFont.systemFont(ofSize: 10)
+        lab.font = UIFont.systemFont(ofSize: 20)
+        lab.textColor = .red
         lab.translatesAutoresizingMaskIntoConstraints = false
         return lab
     }()

@@ -68,6 +68,12 @@ struct MineSweeperHandler {
                 allMines[radomSection][radomRow] = item
             }
         }
+        
+        for s in 0..<sections {
+            for r in 0..<rows {
+                self.allMines[s][r].around = self.calcMineAround(section: s, row: r)
+            }
+        }
     }
     
     mutating func selected(section: Int, row: Int) -> Bool {
@@ -78,10 +84,11 @@ struct MineSweeperHandler {
         }
         
         if !item.selected {
-            item.around = self.calcMineAround(section: section, row: row)
             item.selected = true
+            if item.around == 0 {
+                let crossIndexs = self.calcCross(section: section, row: row)
+            }
         }
-        self.allMines[section][row] = item
         return true
     }
 
@@ -102,12 +109,17 @@ struct MineSweeperHandler {
         
         let topLeft = (section - 1, row - 1), top = (section - 1, row), topRight = (section - 1, row + 1)
         let left = (section, row - 1), right = (section, row + 1)
-        let bottomLeft = (section + 1, row - 1), bottom = (section +  1, row), bottomRight = (section + 1, row + 1)
+        let bottomLeft = (section + 1, row - 1), bottom = (section + 1, row), bottomRight = (section + 1, row + 1)
     
         let around = [topLeft, top, topRight, left, right, bottomLeft, bottom, bottomRight]
         
         return around.filter { ($0 >= 0 && $1 >= 0) && ($0 < sections && $1 < rows)}
     }
     
+    
+    func calcCross(section: Int, row: Int) -> [(Int, Int)] {
+        let top = (section - 1, row), left = (section, row - 1), right = (section, row + 1), bottom = (section + 1, row)
+        return [top, left, right, bottom].filter {($0 >= 0 && $1 >= 0) && ($0 < sections && $1 < rows)}
+    }
     
 }
