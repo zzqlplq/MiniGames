@@ -9,14 +9,14 @@ import UIKit
 
 class MineSweeperViewController: UIViewController {
     
-    let sections = 8
-    let rows = 8
+    let sections = 6
+    let rows = 6
     lazy var sweeperHandler = MineSweeperHandler(sections: sections, rows: rows)
     
     override func viewDidLoad() {
         super.viewDidLoad()
         makeSubviewsLayout()
-        sweeperHandler.createRadomMines(totalMines: 14)
+        sweeperHandler.createRadomMines(totalMines: 5)
         view.backgroundColor = .systemGroupedBackground
     }
 
@@ -34,6 +34,16 @@ class MineSweeperViewController: UIViewController {
         sweeperHandler.createRadomMines(totalMines: 14)
         collectionView.reloadData()
     }
+    
+    func successGame() {
+        let alert = UIAlertController(title: "挑战成功", message: nil, preferredStyle: .alert)
+        let action = UIAlertAction(title: "重新挑战", style: .default) { [unowned self] _ in
+            startNewGame()
+        }
+        alert.addAction(action)
+        present(alert, animated: true)
+    }
+    
     
     
     lazy var collectionView: UICollectionView = {
@@ -77,6 +87,9 @@ extension MineSweeperViewController: UICollectionViewDelegate, UICollectionViewD
         let result = sweeperHandler.selected(section: indexPath.section, row: indexPath.row)
         if result {
             collectionView.reloadData()
+            if sweeperHandler.checkFinished() {
+                successGame()
+            }
         } else {
             let alert = UIAlertController(title: "挑战失败", message: "您踩到雷了！", preferredStyle: .alert)
             let action = UIAlertAction(title: "重新挑战", style: .default) { [unowned self] _ in
@@ -85,10 +98,8 @@ extension MineSweeperViewController: UICollectionViewDelegate, UICollectionViewD
             alert.addAction(action)
             present(alert, animated: true)
         }
-    }
-    
+    }    
 }
-
 
 
 
@@ -138,7 +149,7 @@ class MineCollectionViewCell: UICollectionViewCell {
             contentView.backgroundColor = .init(white: 0, alpha: 0.2)
             contentLab.text = ""
         }
-//        detailLab.text = mine.state == .with ? "*": ""
+        detailLab.text = mine.state == .with ? "*": ""
     }
     
     lazy var contentLab: UILabel = {

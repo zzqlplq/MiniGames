@@ -33,6 +33,7 @@ struct MineSweeperHandler {
     var allMines: [[MineItem]]
     let sections: Int
     let rows: Int
+    var mineCount: Int = 0
     
     init(sections: Int, rows: Int) {
         self.sections = sections
@@ -54,8 +55,9 @@ struct MineSweeperHandler {
     }
     
     mutating func createRadomMines(totalMines:Int) {
+        mineCount = totalMines
+
         var total = totalMines
-        
         while total > 0 {
             let radomSection = Int.random(in: 0..<sections)
             let radomRow = Int.random(in: 0..<rows)
@@ -89,7 +91,21 @@ struct MineSweeperHandler {
         }
         return true
     }
+    
+    
+    func checkFinished() -> Bool {
+        var remain = 0
+        self.allMines.forEach { mineSections in
+            mineSections.forEach { mine in
+                if !mine.selected {
+                    remain += 1
+                }
+            }
+        }
+        return mineCount == remain
+    }
 
+    
     mutating func iterateSelect(section: Int, row: Int) {
         
         let item = self.allMines[section][row]
