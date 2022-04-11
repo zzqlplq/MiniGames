@@ -9,14 +9,14 @@ import UIKit
 
 class MineSweeperViewController: UIViewController {
     
-    let sections = 6
-    let rows = 6
-    var sweeperHandler = MineSweeperHandler(sections: 6, rows: 6)
+    let sections = 8
+    let rows = 8
+    lazy var sweeperHandler = MineSweeperHandler(sections: sections, rows: rows)
     
     override func viewDidLoad() {
         super.viewDidLoad()
         makeSubviewsLayout()
-        sweeperHandler.createRadomMines(totalMines: 5)
+        sweeperHandler.createRadomMines(totalMines: 14)
         view.backgroundColor = .systemGroupedBackground
     }
 
@@ -26,6 +26,13 @@ class MineSweeperViewController: UIViewController {
         collectionView.bottomAnchor.constraint(equalTo: view.bottomAnchor).isActive = true
         collectionView.centerXAnchor.constraint(equalTo: view.centerXAnchor).isActive = true
         collectionView.widthAnchor.constraint(equalTo: collectionView.heightAnchor).isActive = true
+    }
+    
+    
+    func startNewGame() {
+        sweeperHandler = MineSweeperHandler(sections: sections, rows: rows)
+        sweeperHandler.createRadomMines(totalMines: 14)
+        collectionView.reloadData()
     }
     
     
@@ -71,7 +78,12 @@ extension MineSweeperViewController: UICollectionViewDelegate, UICollectionViewD
         if result {
             collectionView.reloadData()
         } else {
-            print("踩到雷了")
+            let alert = UIAlertController(title: "挑战失败", message: "您踩到雷了！", preferredStyle: .alert)
+            let action = UIAlertAction(title: "重新挑战", style: .default) { [unowned self] _ in
+                startNewGame()
+            }
+            alert.addAction(action)
+            present(alert, animated: true)
         }
     }
     
@@ -114,8 +126,19 @@ class MineCollectionViewCell: UICollectionViewCell {
     
     func bind(_ mine: MineItem) {
         self.mine = mine
-        contentLab.text = mine.selected ? mine.around.description : ""
-        detailLab.text = mine.state == .with ? "*": ""
+        if mine.selected {
+            if mine.around == 0 {
+                contentView.backgroundColor = .init(white: 0, alpha: 0.1)
+                contentLab.text = ""
+            } else {
+                contentLab.text = mine.around.description
+                contentView.backgroundColor = .init(white: 0, alpha: 0.2)
+            }
+        } else {
+            contentView.backgroundColor = .init(white: 0, alpha: 0.2)
+            contentLab.text = ""
+        }
+//        detailLab.text = mine.state == .with ? "*": ""
     }
     
     lazy var contentLab: UILabel = {
@@ -145,5 +168,8 @@ extension MineSweeperViewController {
 extension MineSweeperViewController {
     override var supportedInterfaceOrientations: UIInterfaceOrientationMask {
         return .landscape
+    }
+    override var shouldAutorotate: Bool {
+        return true
     }
 }

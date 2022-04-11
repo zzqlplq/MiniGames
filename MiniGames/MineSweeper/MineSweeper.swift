@@ -16,7 +16,7 @@ enum MineState {
 enum MarkState {
     case unmark
     case undetermined
-    case sure
+    case mine
 }
 
 
@@ -78,20 +78,34 @@ struct MineSweeperHandler {
     
     mutating func selected(section: Int, row: Int) -> Bool {
         
-        var item = self.allMines[section][row]
+        let item = self.allMines[section][row]
         if item.state == .with {
+            self.allMines[section][row].selected = true
             return false
         }
         
         if !item.selected {
-            item.selected = true
-            if item.around == 0 {
-                let crossIndexs = self.calcCross(section: section, row: row)
-            }
+            self.iterateSelect(section: section, row: row)
         }
         return true
     }
 
+    mutating func iterateSelect(section: Int, row: Int) {
+        
+        let item = self.allMines[section][row]
+        if item.selected { return }
+
+        self.allMines[section][row].selected = true
+        
+        if item.around == 0 {
+            let around = self.calcAround(section: section, row: row)
+            around.forEach { (s, r) in
+                iterateSelect(section: s, row: r)
+            }
+        }
+    }
+    
+    
     
     func calcMineAround(section: Int, row: Int) -> Int {
         let aroundIndexs = self.calcAround(section: section, row: row)
