@@ -46,7 +46,7 @@ struct MineSweeperHandler {
         }
         var state: MineState = .without
         var mark: MarkState = .unmark
-        var selected = false
+        var isSelected = false
         var around = 0
     }
 
@@ -107,11 +107,16 @@ struct MineSweeperHandler {
         return true
     }
     
+    mutating func marked(at index: IndexPath, mark: MineItem.MarkState) {
+        guard !self[index].isSelected else { return }
+        self[index].mark = mark
+    }
+    
     func checkFinished() -> Bool {
         var remain = 0
         self.allMines.forEach { mineSections in
             mineSections.forEach { mine in
-                if !mine.selected {
+                if !mine.isSelected {
                     remain += 1
                 }
             }
@@ -122,9 +127,9 @@ struct MineSweeperHandler {
     
     private mutating func iterateSelect(at index: IndexPath) {
         
-        guard !self[index].selected else { return }
+        guard !self[index].isSelected else { return }
         
-        self[index].selected = true
+        self[index].isSelected = true
         
         if self[index].around == 0 {
             index.around().forEach { iterateSelect(at: $0) }

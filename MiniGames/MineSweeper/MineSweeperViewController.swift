@@ -78,7 +78,9 @@ extension MineSweeperViewController: UICollectionViewDelegate, UICollectionViewD
     
     func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
         let cell = collectionView.dequeueReusableCell(withReuseIdentifier: MineSweeperViewController.CellId, for: indexPath) as! MineCollectionViewCell
+        cell.index = indexPath
         cell.bind(sweeperHandler[indexPath])
+        cell.delegate = self
         return cell
     }
     
@@ -102,24 +104,50 @@ extension MineSweeperViewController: UICollectionViewDelegate, UICollectionViewD
 }
 
 
+extension MineSweeperViewController: MarkProtocol {
+    
+    func makeMark(_ index: IndexPath) {
+        
+        let controller = UIAlertController(title:nil , message: nil, preferredStyle: .actionSheet)
+        let cancel = UIAlertAction(title: "取消", style: .cancel, handler: nil)
+        let removeMark = UIAlertAction(title: "取消标记", style: .default) { [unowned self] _ in
+            self.sweeperHandler[index].mark = .unmark
+            self.collectionView.reloadData()
+        }
+        let mineMark = UIAlertAction(title: "雷", style: .default) {[unowned self] _ in
+            self.sweeperHandler[index].mark = .mine
+            self.collectionView.reloadData()
+        }
+        let undeterminedMark = UIAlertAction(title: "不确定", style: .default) {[unowned self] _ in
+            self.sweeperHandler[index].mark = .undetermined
+            self.collectionView.reloadData()
+        }
+        controller.addActions([mineMark, undeterminedMark, removeMark, cancel])
+        self.present(controller, animated: true)
+    }
+}
 
+
+
+protocol MarkProtocol: NSObjectProtocol {
+    func makeMark(_ index: IndexPath)
+}
 
 class MineCollectionViewCell: UICollectionViewCell {
     
     var mine: MineSweeperHandler.MineItem!
+    var index: IndexPath!
+    
+    weak var delegate: MarkProtocol?
     
     override init(frame: CGRect) {
         super.init(frame: frame)
         makeSubviewsLayout()
+        defaultConfig()
     }
     
     required init?(coder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
-    }
-    
-    override func layoutSubviews() {
-        super.layoutSubviews()
-
     }
     
     func makeSubviewsLayout() {
@@ -134,9 +162,16 @@ class MineCollectionViewCell: UICollectionViewCell {
         detailLab.bottomAnchor.constraint(equalTo: contentView.bottomAnchor).isActive = true
     }
     
+    func defaultConfig() {
+        let doubleTap = UITapGestureRecognizer(target: self, action: #selector(doubleTapHandle))
+        doubleTap.numberOfTapsRequired = 2
+        contentView.addGestureRecognizer(doubleTap)
+    }
+
+    
     func bind(_ mine: MineSweeperHandler.MineItem) {
         self.mine = mine
-        if mine.selected {
+        if mine.isSelected {
             if mine.around == 0 {
                 contentView.backgroundColor = .init(white: 0, alpha: 0.1)
                 contentLab.text = ""
@@ -148,8 +183,27 @@ class MineCollectionViewCell: UICollectionViewCell {
             contentView.backgroundColor = .init(white: 0, alpha: 0.2)
             contentLab.text = ""
         }
-//        detailLab.text = mine.state == .with ? "*": ""
+        
+        switch mine.mark {
+        case .mine:
+            detailLab.text = "*"
+        case .undetermined:
+            detailLab.text = "?"
+        case .unmark:
+            detailLab.text = ""
+        }
     }
+    
+
+    @objc
+    func doubleTapHandle() {
+        guard !self.mine.isSelected else { return }
+        if let delegate = delegate {
+            delegate.makeMark(self.index)
+        }
+    }
+
+    
     
     lazy var contentLab: UILabel = {
         var lab = UILabel()
@@ -181,5 +235,15 @@ extension MineSweeperViewController {
     }
     override var shouldAutorotate: Bool {
         return true
+    }
+}
+
+
+extension UIAlertController {
+    
+    func addActions(_ actions: [UIAlertAction]) {
+        actions.forEach { [unowned self] in
+            self.addAction($0)
+        }
     }
 }
