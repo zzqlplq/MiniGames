@@ -11,13 +11,13 @@ class MineSweeperViewController: UIViewController {
     
     let sections = 6
     let rows = 6
-    lazy var sweeperHandler = MineSweeperHandler(sections: sections, rows: rows)
+    lazy var sweeperHandler: MineSweeperHandler = MineSweeperHandler(sections: sections, rows: rows)
     
     override func viewDidLoad() {
         super.viewDidLoad()
-        makeSubviewsLayout()
-        sweeperHandler.createRadomMines(totalMines: 5)
+        sweeperHandler.createRadomMines(total: 5)
         view.backgroundColor = .systemGroupedBackground
+        makeSubviewsLayout()
     }
 
     func makeSubviewsLayout() {
@@ -31,7 +31,7 @@ class MineSweeperViewController: UIViewController {
     
     func startNewGame() {
         sweeperHandler = MineSweeperHandler(sections: sections, rows: rows)
-        sweeperHandler.createRadomMines(totalMines: 14)
+        sweeperHandler.createRadomMines(total: 5)
         collectionView.reloadData()
     }
     
@@ -78,13 +78,13 @@ extension MineSweeperViewController: UICollectionViewDelegate, UICollectionViewD
     
     func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
         let cell = collectionView.dequeueReusableCell(withReuseIdentifier: MineSweeperViewController.CellId, for: indexPath) as! MineCollectionViewCell
-        cell.bind(sweeperHandler.allMines[indexPath.section][indexPath.row])
+        cell.bind(sweeperHandler[indexPath])
         return cell
     }
     
     func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
                 
-        let result = sweeperHandler.selected(section: indexPath.section, row: indexPath.row)
+        let result = sweeperHandler.selected(at: indexPath)
         if result {
             collectionView.reloadData()
             if sweeperHandler.checkFinished() {
@@ -106,7 +106,7 @@ extension MineSweeperViewController: UICollectionViewDelegate, UICollectionViewD
 
 class MineCollectionViewCell: UICollectionViewCell {
     
-    var mine: MineItem!
+    var mine: MineSweeperHandler.MineItem!
     
     override init(frame: CGRect) {
         super.init(frame: frame)
@@ -130,12 +130,11 @@ class MineCollectionViewCell: UICollectionViewCell {
         contentLab.leftAnchor.constraint(equalTo: contentView.leftAnchor).isActive = true
         contentLab.heightAnchor.constraint(equalTo: contentView.heightAnchor).isActive = true
         contentLab.widthAnchor.constraint(equalTo: contentView.heightAnchor).isActive = true
-    
         detailLab.leftAnchor.constraint(equalTo: contentView.leftAnchor).isActive = true
         detailLab.bottomAnchor.constraint(equalTo: contentView.bottomAnchor).isActive = true
     }
     
-    func bind(_ mine: MineItem) {
+    func bind(_ mine: MineSweeperHandler.MineItem) {
         self.mine = mine
         if mine.selected {
             if mine.around == 0 {
@@ -149,7 +148,7 @@ class MineCollectionViewCell: UICollectionViewCell {
             contentView.backgroundColor = .init(white: 0, alpha: 0.2)
             contentLab.text = ""
         }
-        detailLab.text = mine.state == .with ? "*": ""
+//        detailLab.text = mine.state == .with ? "*": ""
     }
     
     lazy var contentLab: UILabel = {

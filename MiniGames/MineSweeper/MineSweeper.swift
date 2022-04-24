@@ -7,91 +7,105 @@
 
 import Foundation
 
-enum MineState {
-    case with
-    case without
+protocol Limitable {
+    associatedtype WrapperType
+    static var min: WrapperType { get set }
+    static var max: WrapperType { get set }
+    var isBeyond: Bool { get }
 }
 
 
-enum MarkState {
-    case unmark
-    case undetermined
-    case mine
-}
-
-
-struct MineItem {
-    var state: MineState = .without
-    var mark: MarkState = .unmark
-    var selected = false
-    var around = 0
+extension IndexPath : Limitable {
+    
+    static var min: IndexPath = IndexPath(row: 0, section: 0)
+    static var max: IndexPath = IndexPath(row: Int.max, section: Int.max)
+    public var isBeyond: Bool {
+        return !((section >= IndexPath.min.section && row >= IndexPath.min.row) && (section <= IndexPath.max.section && row <= IndexPath.max.row))
+    }
+    
+    func around() -> [IndexPath] {
+        let topLeft = IndexPath(row: row - 1, section: section - 1), top = IndexPath(row: row, section: section - 1), topRight = IndexPath(row: row + 1, section: section - 1)
+        let left = IndexPath(row: row - 1, section: section), right = IndexPath(row: row + 1, section: section)
+        let bottomLeft = IndexPath(row: row - 1, section: section + 1), bottom = IndexPath(row: row, section: section + 1), bottomRight = IndexPath(row: row + 1, section: section + 1)
+        return [topLeft, top, topRight, left, right, bottomLeft, bottom, bottomRight].filter{!$0.isBeyond}
+    }
 }
 
 
 struct MineSweeperHandler {
-    
-    var allMines: [[MineItem]]
-    let sections: Int
-    let rows: Int
-    var mineCount: Int = 0
+
+    struct MineItem {
+        enum MineState {
+            case with
+            case without
+        }
+        enum MarkState {
+            case unmark
+            case undetermined
+            case mine
+        }
+        var state: MineState = .without
+        var mark: MarkState = .unmark
+        var selected = false
+        var around = 0
+    }
+
+    private var allMines: [[MineItem]]
+    private var mineCount: Int = 0
     
     init(sections: Int, rows: Int) {
-        self.sections = sections
-        self.rows = rows
-        
+        IndexPath.max = IndexPath(row: rows - 1, section: sections - 1)
+
         var all: [[MineItem]] = []
-        for _ in 0..<sections {
-            var mines: [MineItem] = []
-            for _ in  0..<rows {
-                mines += [MineItem()]
+        (0..<sections).forEach { section in
+            var sMines: [MineItem] = []
+            (0..<rows).forEach { row in
+                sMines.append(MineItem())
             }
-             all += [mines]
+            all.append(sMines)
         }
         allMines = all
     }
-
-    mutating func markMine(mark: MarkState, section: Int, row: Int) {
-        allMines[section][row].mark = mark;
+        
+    subscript (indexPath: IndexPath) -> MineItem {
+        get {
+            return self.allMines[indexPath.section][indexPath.row]
+        }
+        set {
+            self.allMines[indexPath.section][indexPath.row] = newValue
+        }
     }
     
-    mutating func createRadomMines(totalMines:Int) {
-        mineCount = totalMines
-
-        var total = totalMines
-        while total > 0 {
-            let radomSection = Int.random(in: 0..<sections)
-            let radomRow = Int.random(in: 0..<rows)
+    
+    mutating func createRadomMines(total: Int) {
+        mineCount = total
+        var temp = total
+        while temp > 0 {
+            let radomSection = Int.random(in: 0...IndexPath.max.section)
+            let radomRow = Int.random(in: 0...IndexPath.max.row)
+            let radomIndex = IndexPath(row: radomRow, section: radomSection)
             
-            var item = allMines[radomSection][radomRow]
-
-            if  item.state != .with {
-                item.state = .with
-                total -= 1
-                allMines[radomSection][radomRow] = item
+            if  self[radomIndex].state != .with {
+                self[radomIndex].state = .with
+                temp -= 1
             }
         }
         
-        for s in 0..<sections {
-            for r in 0..<rows {
-                self.allMines[s][r].around = self.calcMineAround(section: s, row: r)
+        for s in 0...IndexPath.max.section {
+            for r in 0...IndexPath.max.row {
+                let index = IndexPath(row:r , section: s)
+                self[index].around = self.calcAroundMineCount(at: index)
             }
         }
     }
     
-    mutating func selected(section: Int, row: Int) -> Bool {
-        
-        let item = self.allMines[section][row]
-        if item.state == .with {
-            self.allMines[section][row].selected = true
-            return false
-        }
-        
-        if !item.selected {
-            self.iterateSelect(section: section, row: row)
-        }
+  
+    mutating func selected(at index: IndexPath) -> Bool {
+        guard self[index].state == .without else { return false }
+
+        self.iterateSelect(at: index)
         return true
     }
-    
     
     func checkFinished() -> Bool {
         var remain = 0
@@ -106,50 +120,26 @@ struct MineSweeperHandler {
     }
 
     
-    mutating func iterateSelect(section: Int, row: Int) {
+    private mutating func iterateSelect(at index: IndexPath) {
         
-        let item = self.allMines[section][row]
-        if item.selected { return }
-
-        self.allMines[section][row].selected = true
+        guard !self[index].selected else { return }
         
-        if item.around == 0 {
-            let around = self.calcAround(section: section, row: row)
-            around.forEach { (s, r) in
-                iterateSelect(section: s, row: r)
-            }
+        self[index].selected = true
+        
+        if self[index].around == 0 {
+            index.around().forEach { iterateSelect(at: $0) }
         }
     }
     
     
-    
-    func calcMineAround(section: Int, row: Int) -> Int {
-        let aroundIndexs = self.calcAround(section: section, row: row)
+    private func calcAroundMineCount(at index: IndexPath) -> Int {
         var count = 0
-        aroundIndexs.forEach { (s, r) in
-            if self.allMines[s][r].state == .with {
+        index.around().forEach { i in
+            if self[i].state == .with {
                 count += 1
             }
         }
         return count
-    }
-    
-    
-    func calcAround(section: Int, row: Int) -> [(Int, Int)] {
-        
-        let topLeft = (section - 1, row - 1), top = (section - 1, row), topRight = (section - 1, row + 1)
-        let left = (section, row - 1), right = (section, row + 1)
-        let bottomLeft = (section + 1, row - 1), bottom = (section + 1, row), bottomRight = (section + 1, row + 1)
-    
-        let around = [topLeft, top, topRight, left, right, bottomLeft, bottom, bottomRight]
-        
-        return around.filter { ($0 >= 0 && $1 >= 0) && ($0 < sections && $1 < rows)}
-    }
-    
-    
-    func calcCross(section: Int, row: Int) -> [(Int, Int)] {
-        let top = (section - 1, row), left = (section, row - 1), right = (section, row + 1), bottom = (section + 1, row)
-        return [top, left, right, bottom].filter {($0 >= 0 && $1 >= 0) && ($0 < sections && $1 < rows)}
     }
     
 }
